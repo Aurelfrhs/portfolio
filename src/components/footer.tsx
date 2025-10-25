@@ -8,9 +8,9 @@ const Footer = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   const socialLinks = [
-    { name: 'GitHub', icon: Github, href: '#', color: 'hover:text-[#333] dark:hover:text-white' },
-    { name: 'LinkedIn', icon: Linkedin, href: '#', color: 'hover:text-[#0077b5]' },
-    { name: 'Email', icon: Mail, href: '#', color: 'hover:text-primary' },
+    { name: 'GitHub', icon: Github, href: 'https://github.com/Aurelfrhs', color: 'hover:text-[#333] dark:hover:text-white' },
+    { name: 'LinkedIn', icon: Linkedin, href: 'aurel.vercel.app', color: 'hover:text-[#0077b5]' },
+    { name: 'Email', icon: Mail, href: 'aurelfristian10@gmail.com', color: 'hover:text-primary' },
   ];
 
   const quickLinks = [
