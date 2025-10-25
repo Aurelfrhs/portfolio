@@ -1,225 +1,283 @@
-import { HackathonCard } from "@/components/hackathon-card";
-import BlurFade from "@/components/magicui/blur-fade";
-import BlurFadeText from "@/components/magicui/blur-fade-text";
-import { ProjectCard } from "@/components/project-card";
-import { ResumeCard } from "@/components/resume-card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { DATA } from "@/data/resume";
-import Link from "next/link";
-import Markdown from "react-markdown";
+'use client'
 
-const BLUR_FADE_DELAY = 0.04;
+import About from "@/components/section/About";
+import Experience from "@/components/section/Experience";
+import Hero from "@/components/section/Hero";
+import Project from "@/components/section/Project";
+import { motion, MotionValue, useScroll, useSpring, useTransform } from "framer-motion";
+import { useRef } from "react";
+
+// Enhanced parallax hook dengan multiple effects
+function useEnhancedParallax(value: MotionValue<number>, distance: number) {
+  return useTransform(value, [0, 1], [-distance, distance]);
+}
+
+// Advanced parallax dengan opacity, scale, dan rotation
+function useAdvancedParallax(
+  scrollYProgress: MotionValue<number>, 
+  distance: number,
+  options?: {
+    enableFade?: boolean;
+    enableScale?: boolean;
+    enableRotate?: boolean;
+  }
+) {
+  const { enableFade = false, enableScale = false, enableRotate = false } = options || {};
+  
+  const y = useTransform(scrollYProgress, [0, 1], [-distance, distance]);
+  const opacity = enableFade 
+    ? useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.3, 1, 1, 0.5]) 
+    : undefined;
+  const scale = enableScale 
+    ? useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.95, 1, 1, 0.95]) 
+    : undefined;
+  const rotateX = enableRotate 
+    ? useTransform(scrollYProgress, [0, 0.5, 1], [5, 0, -5]) 
+    : undefined;
+  
+  return { y, opacity, scale, rotateX };
+}
+
+// Section wrapper dengan enhanced parallax
+function ParallaxSection({ 
+  children,
+  distance = 100,
+  enableFade = false,
+  enableScale = false,
+  enableRotate = false,
+  className = "",
+}: { 
+  children: React.ReactNode;
+  distance?: number;
+  enableFade?: boolean;
+  enableScale?: boolean;
+  enableRotate?: boolean;
+  className?: string;
+}) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ 
+    target: ref,
+    offset: ["start end", "end start"]
+  });
+
+  // Enhanced spring configuration untuk smooth animation
+  const springConfig = {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  };
+
+  const { y, opacity, scale, rotateX } = useAdvancedParallax(
+    scrollYProgress, 
+    distance,
+    { enableFade, enableScale, enableRotate }
+  );
+
+  const smoothY = useSpring(y, springConfig);
+  const smoothOpacity = opacity ? useSpring(opacity, springConfig) : undefined;
+  const smoothScale = scale ? useSpring(scale, springConfig) : undefined;
+  const smoothRotateX = rotateX ? useSpring(rotateX, springConfig) : undefined;
+
+  return (
+    <section ref={ref} className={`relative overflow-hidden ${className}`}>
+      <motion.div 
+        style={{ 
+          y: smoothY,
+          ...(smoothOpacity && { opacity: smoothOpacity }),
+          ...(smoothScale && { scale: smoothScale }),
+          ...(smoothRotateX && { rotateX: smoothRotateX }),
+        }}
+      >
+        {children}
+      </motion.div>
+    </section>
+  );
+}
+
+// Staggered parallax untuk multiple children
+function StaggeredParallax({
+  children,
+  staggerDelay = 0.1,
+  distance = 80,
+}: {
+  children: React.ReactNode;
+  staggerDelay?: number;
+  distance?: number;
+}) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ 
+    target: ref,
+    offset: ["start end", "end start"]
+  });
+
+  const y = useTransform(scrollYProgress, [0, 1], [-distance, distance]);
+  const smoothY = useSpring(y, { stiffness: 100, damping: 30 });
+
+  return (
+    <div ref={ref}>
+      <motion.div style={{ y: smoothY }}>
+        {children}
+      </motion.div>
+    </div>
+  );
+}
 
 export default function Page() {
+  const { scrollYProgress } = useScroll();
+  
+  // Enhanced scroll progress bar
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 150,
+    damping: 30,
+    restDelta: 0.001,
+  });
+
+  // Progress bar color change
+  const progressColor = useTransform(
+    scrollYProgress,
+    [0, 0.25, 0.5, 0.75, 1],
+    [
+      "hsl(var(--primary))",
+      "hsl(var(--primary))",
+      "hsl(var(--primary))",
+      "hsl(var(--primary))",
+      "hsl(var(--primary))",
+    ]
+  );
+
   return (
-    <main className="flex flex-col min-h-[100dvh] space-y-10">
-      <section id="hero">
-        <div className="mx-auto w-full max-w-2xl space-y-8">
-          <div className="gap-2 flex justify-between">
-            <div className="flex-col flex flex-1 space-y-1.5">
-              <BlurFadeText
-                delay={BLUR_FADE_DELAY}
-                className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none"
-                yOffset={8}
-                text={`Hi, I'm ${DATA.name.split(" ")[0]} 👋`}
-              />
-              <BlurFadeText
-                className="max-w-[600px] md:text-xl"
-                delay={BLUR_FADE_DELAY}
-                text={DATA.description}
-              />
-            </div>
-            <BlurFade delay={BLUR_FADE_DELAY}>
-              <Avatar className="size-28 border">
-                <AvatarImage alt={DATA.name} src={DATA.avatarUrl} />
-                <AvatarFallback>{DATA.initials}</AvatarFallback>
-              </Avatar>
-            </BlurFade>
-          </div>
-        </div>
-      </section>
-      <section id="about">
-        <BlurFade delay={BLUR_FADE_DELAY * 3}>
-          <h2 className="text-xl font-bold">About</h2>
-        </BlurFade>
-        <BlurFade delay={BLUR_FADE_DELAY * 4}>
-          <Markdown className="prose max-w-full text-pretty font-sans text-sm text-muted-foreground dark:prose-invert">
-            {DATA.summary}
-          </Markdown>
-        </BlurFade>
-      </section>
-      <section id="work">
-        <div className="flex min-h-0 flex-col gap-y-3">
-          <BlurFade delay={BLUR_FADE_DELAY * 5}>
-            <h2 className="text-xl font-bold">Work Experience</h2>
-          </BlurFade>
-          {DATA.work.map((work, id) => (
-            <BlurFade
-              key={work.company}
-              delay={BLUR_FADE_DELAY * 6 + id * 0.05}
-            >
-              <ResumeCard
-                key={work.company}
-                logoUrl={work.logoUrl}
-                altText={work.company}
-                title={work.company}
-                subtitle={work.title}
-                href={work.href}
-                badges={work.badges}
-                period={`${work.start} - ${work.end ?? "Present"}`}
-                description={work.description}
-              />
-            </BlurFade>
-          ))}
-        </div>
-      </section>
-      <section id="education">
-        <div className="flex min-h-0 flex-col gap-y-3">
-          <BlurFade delay={BLUR_FADE_DELAY * 7}>
-            <h2 className="text-xl font-bold">Education</h2>
-          </BlurFade>
-          {DATA.education.map((education, id) => (
-            <BlurFade
-              key={education.school}
-              delay={BLUR_FADE_DELAY * 8 + id * 0.05}
-            >
-              <ResumeCard
-                key={education.school}
-                href={education.href}
-                logoUrl={education.logoUrl}
-                altText={education.school}
-                title={education.school}
-                subtitle={education.degree}
-                period={`${education.start} - ${education.end}`}
-              />
-            </BlurFade>
-          ))}
-        </div>
-      </section>
-      <section id="skills">
-        <div className="flex min-h-0 flex-col gap-y-3">
-          <BlurFade delay={BLUR_FADE_DELAY * 9}>
-            <h2 className="text-xl font-bold">Skills</h2>
-          </BlurFade>
-          <div className="flex flex-wrap gap-1">
-            {DATA.skills.map((skill, id) => (
-              <BlurFade key={skill} delay={BLUR_FADE_DELAY * 10 + id * 0.05}>
-                <Badge key={skill}>{skill}</Badge>
-              </BlurFade>
-            ))}
-          </div>
-        </div>
-      </section>
-      <section id="projects">
-        <div className="space-y-12 w-full py-12">
-          <BlurFade delay={BLUR_FADE_DELAY * 11}>
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-foreground text-background px-3 py-1 text-sm">
-                  My Projects
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-                  Check out my latest work
-                </h2>
-                <p className="text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  I&apos;ve worked on a variety of projects, from simple
-                  websites to complex web applications. Here are a few of my
-                  favorites.
-                </p>
-              </div>
-            </div>
-          </BlurFade>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 max-w-[800px] mx-auto">
-            {DATA.projects.map((project, id) => (
-              <BlurFade
-                key={project.title}
-                delay={BLUR_FADE_DELAY * 12 + id * 0.05}
-              >
-                <ProjectCard
-                  href={project.href}
-                  key={project.title}
-                  title={project.title}
-                  description={project.description}
-                  dates={project.dates}
-                  tags={project.technologies}
-                  image={project.image}
-                  video={project.video}
-                  links={project.links}
-                />
-              </BlurFade>
-            ))}
-          </div>
-        </div>
-      </section>
-      <section id="hackathons">
-        <div className="space-y-12 w-full py-12">
-          <BlurFade delay={BLUR_FADE_DELAY * 13}>
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-foreground text-background px-3 py-1 text-sm">
-                  Hackathons
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-                  I like building things
-                </h2>
-                <p className="text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  During my time in university, I attended{" "}
-                  {DATA.hackathons.length}+ hackathons. People from around the
-                  country would come together and build incredible things in 2-3
-                  days. It was eye-opening to see the endless possibilities
-                  brought to life by a group of motivated and passionate
-                  individuals.
-                </p>
-              </div>
-            </div>
-          </BlurFade>
-          <BlurFade delay={BLUR_FADE_DELAY * 14}>
-            <ul className="mb-4 ml-4 divide-y divide-dashed border-l">
-              {DATA.hackathons.map((project, id) => (
-                <BlurFade
-                  key={project.title + project.dates}
-                  delay={BLUR_FADE_DELAY * 15 + id * 0.05}
-                >
-                  <HackathonCard
-                    title={project.title}
-                    description={project.description}
-                    location={project.location}
-                    dates={project.dates}
-                    image={project.image}
-                    links={project.links}
-                  />
-                </BlurFade>
-              ))}
-            </ul>
-          </BlurFade>
-        </div>
-      </section>
-      <section id="contact">
-        <div className="grid items-center justify-center gap-4 px-4 text-center md:px-6 w-full py-12">
-          <BlurFade delay={BLUR_FADE_DELAY * 16}>
-            <div className="space-y-3">
-              <div className="inline-block rounded-lg bg-foreground text-background px-3 py-1 text-sm">
-                Contact
-              </div>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-                Get in Touch
-              </h2>
-              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Want to chat? Just shoot me a dm{" "}
-                <Link
-                  href={DATA.contact.social.X.url}
-                  className="text-blue-500 hover:underline"
-                >
-                  with a direct question on twitter
-                </Link>{" "}
-                and I&apos;ll respond whenever I can. I will ignore all
-                soliciting.
-              </p>
-            </div>
-          </BlurFade>
-        </div>
-      </section>
-    </main>
+    <>
+      {/* Enhanced Progress Bar */}
+      <motion.div 
+        className="fixed top-0 left-0 right-0 h-1 bg-primary origin-left z-50 shadow-lg shadow-primary/50"
+        style={{ 
+          scaleX,
+          backgroundColor: progressColor 
+        }}
+      />
+
+      {/* Percentage Indicator */}
+      <motion.div
+        className="fixed top-4 right-4 z-50 px-4 py-2 rounded-full bg-background/80 backdrop-blur-xl border border-border/50 shadow-xl"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <motion.span className="text-xs font-bold text-primary">
+          {useTransform(scrollYProgress, (value) => `${Math.round(value * 100)}%`)}
+        </motion.span>
+      </motion.div>
+
+      {/* Hero Section - No parallax untuk hero */}
+      <Hero 
+        subtitle="Junior Frontend Developer"
+        title="AUREL FRISTIAN"
+        subline="BASED IN BANDUNG, INDONESIA"
+      />
+
+      {/* About Section - Subtle parallax dengan fade */}
+      <ParallaxSection 
+        distance={120} 
+        enableFade 
+        enableScale
+        className="will-change-transform"
+      >
+        <About/>
+      </ParallaxSection>
+
+      {/* Project Section - Enhanced parallax dengan rotation */}
+      <ParallaxSection 
+        distance={150} 
+        enableFade 
+        enableScale 
+        enableRotate
+        className="will-change-transform"
+      >
+        <Project/>
+      </ParallaxSection>
+
+      {/* Experience Section - Medium parallax dengan scale */}
+      <ParallaxSection 
+        distance={130} 
+        enableFade 
+        enableScale
+        className="will-change-transform"
+      >
+        <Experience/>
+      </ParallaxSection>
+
+      {/* Scroll to Top Button */}
+      <motion.button
+        className="fixed bottom-8 right-8 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-xl hover:shadow-2xl hover:shadow-primary/50 transition-shadow duration-300 flex items-center justify-center"
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ 
+          opacity: scrollYProgress.get() > 0.2 ? 1 : 0,
+          scale: scrollYProgress.get() > 0.2 ? 1 : 0
+        }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      >
+        <svg 
+          className="w-6 h-6" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M5 10l7-7m0 0l7 7m-7-7v18" 
+          />
+        </svg>
+      </motion.button>
+
+      {/* Background Decorative Elements */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        {/* Animated Grid */}
+        <motion.div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, hsl(var(--primary)) 1px, transparent 1px),
+              linear-gradient(to bottom, hsl(var(--primary)) 1px, transparent 1px)
+            `,
+            backgroundSize: '60px 60px',
+          }}
+          animate={{
+            backgroundPosition: ['0px 0px', '60px 60px'],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+
+        {/* Floating Orbs */}
+        {[...Array(3)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-64 h-64 rounded-full bg-primary/5 blur-3xl"
+            animate={{
+              x: [0, 100, 0],
+              y: [0, -100, 0],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{
+              duration: 15 + i * 5,
+              repeat: Infinity,
+              delay: i * 3,
+              ease: "easeInOut"
+            }}
+            style={{
+              left: `${10 + i * 35}%`,
+              top: `${20 + i * 25}%`,
+            }}
+          />
+        ))}
+      </div>
+    </>
   );
 }
