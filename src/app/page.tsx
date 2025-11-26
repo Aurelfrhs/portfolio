@@ -103,34 +103,6 @@ function ParallaxSection({
   );
 }
 
-// Staggered parallax untuk multiple children
-function StaggeredParallax({
-  children,
-  staggerDelay = 0.1,
-  distance = 80,
-}: {
-  children: React.ReactNode;
-  staggerDelay?: number;
-  distance?: number;
-}) {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ 
-    target: ref,
-    offset: ["start end", "end start"]
-  });
-
-  const y = useTransform(scrollYProgress, [0, 1], [-distance, distance]);
-  const smoothY = useSpring(y, { stiffness: 100, damping: 30 });
-
-  return (
-    <div ref={ref}>
-      <motion.div style={{ y: smoothY }}>
-        {children}
-      </motion.div>
-    </div>
-  );
-}
-
 export default function Page() {
   // Semua hooks harus di level teratas komponen
   const { scrollYProgress } = useScroll();
