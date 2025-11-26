@@ -74,7 +74,7 @@ const About = () => {
               animate={isInView ? { opacity: 1, scale: 1 } : {}}
               transition={{ delay: 0.4 }}
             >
-              "
+              &ldquo;
             </motion.div>
             
             <p className='relative font-semibold text-2xl md:text-3xl text-foreground/90 leading-relaxed tracking-tight max-sm:text-justify'>
