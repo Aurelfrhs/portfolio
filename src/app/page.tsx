@@ -22,18 +22,19 @@ function useAdvancedParallax(
     enableRotate?: boolean;
   }
 ) {
+  // PENTING: Semua hooks harus dipanggil unconditionally
   const { enableFade = false, enableScale = false, enableRotate = false } = options || {};
   
+  // Panggil semua useTransform di level teratas, tidak dalam conditional
   const y = useTransform(scrollYProgress, [0, 1], [-distance, distance]);
-  const opacity = enableFade 
-    ? useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.3, 1, 1, 0.5]) 
-    : undefined;
-  const scale = enableScale 
-    ? useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.95, 1, 1, 0.95]) 
-    : undefined;
-  const rotateX = enableRotate 
-    ? useTransform(scrollYProgress, [0, 0.5, 1], [5, 0, -5]) 
-    : undefined;
+  const opacityTransform = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.3, 1, 1, 0.5]);
+  const scaleTransform = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.95, 1, 1, 0.95]);
+  const rotateXTransform = useTransform(scrollYProgress, [0, 0.5, 1], [5, 0, -5]);
+  
+  // Gunakan nilai conditionally, bukan hooks
+  const opacity = enableFade ? opacityTransform : undefined;
+  const scale = enableScale ? scaleTransform : undefined;
+  const rotateX = enableRotate ? rotateXTransform : undefined;
   
   return { y, opacity, scale, rotateX };
 }
@@ -55,6 +56,8 @@ function ParallaxSection({
   className?: string;
 }) {
   const ref = useRef(null);
+  
+  // Panggil semua hooks di level teratas
   const { scrollYProgress } = useScroll({ 
     target: ref,
     offset: ["start end", "end start"]
@@ -73,10 +76,16 @@ function ParallaxSection({
     { enableFade, enableScale, enableRotate }
   );
 
+  // Semua useSpring harus dipanggil unconditionally
   const smoothY = useSpring(y, springConfig);
-  const smoothOpacity = opacity ? useSpring(opacity, springConfig) : undefined;
-  const smoothScale = scale ? useSpring(scale, springConfig) : undefined;
-  const smoothRotateX = rotateX ? useSpring(rotateX, springConfig) : undefined;
+  const smoothOpacityBase = useSpring(opacity || 1, springConfig);
+  const smoothScaleBase = useSpring(scale || 1, springConfig);
+  const smoothRotateXBase = useSpring(rotateX || 0, springConfig);
+  
+  // Gunakan nilai conditionally setelah hooks
+  const smoothOpacity = opacity ? smoothOpacityBase : undefined;
+  const smoothScale = scale ? smoothScaleBase : undefined;
+  const smoothRotateX = rotateX ? smoothRotateXBase : undefined;
 
   return (
     <section ref={ref} className={`relative overflow-hidden ${className}`}>
@@ -123,6 +132,7 @@ function StaggeredParallax({
 }
 
 export default function Page() {
+  // Semua hooks harus di level teratas komponen
   const { scrollYProgress } = useScroll();
   
   // Enhanced scroll progress bar
@@ -145,6 +155,9 @@ export default function Page() {
     ]
   );
 
+  // Transform untuk percentage (gunakan di render, bukan sebagai hook)
+  const scrollPercentage = useTransform(scrollYProgress, (value) => Math.round(value * 100));
+
   return (
     <>
       {/* Enhanced Progress Bar */}
@@ -164,7 +177,7 @@ export default function Page() {
         transition={{ delay: 0.5 }}
       >
         <motion.span className="text-xs font-bold text-primary">
-          {useTransform(scrollYProgress, (value) => `${Math.round(value * 100)}%`)}
+          {scrollPercentage}
         </motion.span>
       </motion.div>
 
@@ -210,10 +223,8 @@ export default function Page() {
       <motion.button
         className="fixed bottom-8 right-8 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-xl hover:shadow-2xl hover:shadow-primary/50 transition-shadow duration-300 flex items-center justify-center"
         initial={{ opacity: 0, scale: 0 }}
-        animate={{ 
-          opacity: scrollYProgress.get() > 0.2 ? 1 : 0,
-          scale: scrollYProgress.get() > 0.2 ? 1 : 0
-        }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: false, amount: 0.1 }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
